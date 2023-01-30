@@ -1,4 +1,4 @@
-module github.com/DataDog/sketches-go
+module github.com/jbrjake/sketches-go
 
 go 1.15
 
