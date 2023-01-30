@@ -13,15 +13,15 @@ import (
 
 type CollapsingHighestDenseStore struct {
 	DenseStore
-	maxNumBins  int
-	isCollapsed bool
+	MaxNumBins  int
+	IsCollapsed bool
 }
 
 func NewCollapsingHighestDenseStore(maxNumBins int) *CollapsingHighestDenseStore {
 	return &CollapsingHighestDenseStore{
 		DenseStore:  DenseStore{minIndex: math.MaxInt32, maxIndex: math.MinInt32},
-		maxNumBins:  maxNumBins,
-		isCollapsed: false,
+		MaxNumBins:  maxNumBins,
+		IsCollapsed: false,
 	}
 }
 
@@ -50,11 +50,11 @@ func (s *CollapsingHighestDenseStore) AddWithCount(index int, count float64) {
 // Normalize the store, if necessary, so that the counter of the specified index can be updated.
 func (s *CollapsingHighestDenseStore) normalize(index int) int {
 	if index > s.maxIndex {
-		if s.isCollapsed {
+		if s.IsCollapsed {
 			return len(s.bins) - 1
 		} else {
 			s.extendRange(index, index)
-			if s.isCollapsed {
+			if s.IsCollapsed {
 				return len(s.bins) - 1
 			}
 		}
@@ -65,7 +65,7 @@ func (s *CollapsingHighestDenseStore) normalize(index int) int {
 }
 
 func (s *CollapsingHighestDenseStore) getNewLength(newMinIndex, newMaxIndex int) int {
-	return min(s.DenseStore.getNewLength(newMinIndex, newMaxIndex), s.maxNumBins)
+	return min(s.DenseStore.getNewLength(newMinIndex, newMaxIndex), s.MaxNumBins)
 }
 
 func (s *CollapsingHighestDenseStore) extendRange(newMinIndex, newMaxIndex int) {
@@ -124,7 +124,7 @@ func (s *CollapsingHighestDenseStore) adjust(newMinIndex, newMaxIndex int) {
 			}
 		}
 		s.minIndex = newMinIndex
-		s.isCollapsed = true
+		s.IsCollapsed = true
 	} else {
 		s.centerCounts(newMinIndex, newMaxIndex)
 	}
@@ -171,14 +171,14 @@ func (s *CollapsingHighestDenseStore) Copy() Store {
 			minIndex: s.minIndex,
 			maxIndex: s.maxIndex,
 		},
-		maxNumBins:  s.maxNumBins,
-		isCollapsed: s.isCollapsed,
+		MaxNumBins:  s.MaxNumBins,
+		IsCollapsed: s.IsCollapsed,
 	}
 }
 
 func (s *CollapsingHighestDenseStore) Clear() {
 	s.DenseStore.Clear()
-	s.isCollapsed = false
+	s.IsCollapsed = false
 }
 
 func (s *CollapsingHighestDenseStore) DecodeAndMergeWith(r *[]byte, encodingMode enc.SubFlag) error {

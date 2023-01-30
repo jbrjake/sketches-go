@@ -15,8 +15,8 @@ import (
 // The lower bins get combined so that the total number of bins do not exceed maxNumBins.
 type CollapsingLowestDenseStore struct {
 	DenseStore
-	maxNumBins  int
-	isCollapsed bool
+	MaxNumBins  int
+	IsCollapsed bool
 }
 
 func NewCollapsingLowestDenseStore(maxNumBins int) *CollapsingLowestDenseStore {
@@ -25,8 +25,8 @@ func NewCollapsingLowestDenseStore(maxNumBins int) *CollapsingLowestDenseStore {
 	// grow as needed up to maxNumBins.
 	return &CollapsingLowestDenseStore{
 		DenseStore:  DenseStore{minIndex: math.MaxInt32, maxIndex: math.MinInt32},
-		maxNumBins:  maxNumBins,
-		isCollapsed: false,
+		MaxNumBins:  maxNumBins,
+		IsCollapsed: false,
 	}
 }
 
@@ -55,11 +55,11 @@ func (s *CollapsingLowestDenseStore) AddWithCount(index int, count float64) {
 // Normalize the store, if necessary, so that the counter of the specified index can be updated.
 func (s *CollapsingLowestDenseStore) normalize(index int) int {
 	if index < s.minIndex {
-		if s.isCollapsed {
+		if s.IsCollapsed {
 			return 0
 		} else {
 			s.extendRange(index, index)
-			if s.isCollapsed {
+			if s.IsCollapsed {
 				return 0
 			}
 		}
@@ -70,7 +70,7 @@ func (s *CollapsingLowestDenseStore) normalize(index int) int {
 }
 
 func (s *CollapsingLowestDenseStore) getNewLength(newMinIndex, newMaxIndex int) int {
-	return min(s.DenseStore.getNewLength(newMinIndex, newMaxIndex), s.maxNumBins)
+	return min(s.DenseStore.getNewLength(newMinIndex, newMaxIndex), s.MaxNumBins)
 }
 
 func (s *CollapsingLowestDenseStore) extendRange(newMinIndex, newMaxIndex int) {
@@ -129,7 +129,7 @@ func (s *CollapsingLowestDenseStore) adjust(newMinIndex, newMaxIndex int) {
 			}
 		}
 		s.maxIndex = newMaxIndex
-		s.isCollapsed = true
+		s.IsCollapsed = true
 	} else {
 		s.centerCounts(newMinIndex, newMaxIndex)
 	}
@@ -176,14 +176,14 @@ func (s *CollapsingLowestDenseStore) Copy() Store {
 			minIndex: s.minIndex,
 			maxIndex: s.maxIndex,
 		},
-		maxNumBins:  s.maxNumBins,
-		isCollapsed: s.isCollapsed,
+		MaxNumBins:  s.MaxNumBins,
+		IsCollapsed: s.IsCollapsed,
 	}
 }
 
 func (s *CollapsingLowestDenseStore) Clear() {
 	s.DenseStore.Clear()
-	s.isCollapsed = false
+	s.IsCollapsed = false
 }
 
 func (s *CollapsingLowestDenseStore) DecodeAndMergeWith(r *[]byte, encodingMode enc.SubFlag) error {

@@ -525,7 +525,7 @@ func EvaluateCollapsingLowestStore(t *testing.T, store *CollapsingLowestDenseSto
 	sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
 	maxIndex, _ := store.MaxIndex()
 	assert.Equal(t, maxIndex, int(values[len(values)-1]))
-	assert.GreaterOrEqual(t, store.maxNumBins, len(store.bins))
+	assert.GreaterOrEqual(t, store.MaxNumBins, len(store.bins))
 }
 
 func EvaluateCollapsingHighestStore(t *testing.T, store *CollapsingHighestDenseStore, values []int32) {
@@ -538,7 +538,7 @@ func EvaluateCollapsingHighestStore(t *testing.T, store *CollapsingHighestDenseS
 	sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
 	minIndex, _ := store.MinIndex()
 	assert.Equal(t, minIndex, int(values[0]))
-	assert.GreaterOrEqual(t, store.maxNumBins, len(store.bins))
+	assert.GreaterOrEqual(t, store.MaxNumBins, len(store.bins))
 }
 
 func TestCollapsingLowestAdd(t *testing.T) {
@@ -826,12 +826,12 @@ func TestDenseStoreSerialization(t *testing.T) {
 			AssertDenseStoresEqual(t, storeLow.DenseStore, *deserializedStoreLow)
 			//			EvaluateCollapsingLowestStore(t, deserializedStoreLow, values)
 			// Store does not change after serializing
-			assert.Equal(t, storeLow.maxNumBins, maxNumBins)
+			assert.Equal(t, storeLow.MaxNumBins, maxNumBins)
 			deserializedStoreHigh := FromProto(storeHigh.ToProto())
 			AssertDenseStoresEqual(t, storeHigh.DenseStore, *deserializedStoreHigh)
 			//EvaluateCollapsingHighestStore(t, deserializedStoreHigh, values)
 			// Store does not change after serializing
-			assert.Equal(t, storeHigh.maxNumBins, maxNumBins)
+			assert.Equal(t, storeHigh.MaxNumBins, maxNumBins)
 		}
 	}
 }
