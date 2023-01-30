@@ -6,9 +6,10 @@
 package mapping
 
 import (
-	"github.com/DataDog/sketches-go/ddsketch/encoding"
 	"math"
 	"testing"
+
+	"github.com/jbrjake/sketches-go/ddsketch/encoding"
 
 	"github.com/stretchr/testify/assert"
 )

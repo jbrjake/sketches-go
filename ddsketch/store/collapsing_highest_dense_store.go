@@ -8,7 +8,7 @@ package store
 import (
 	"math"
 
-	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
+	enc "github.com/jbrjake/sketches-go/ddsketch/encoding"
 )
 
 type CollapsingHighestDenseStore struct {

@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"math"
 
-	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
-	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
+	enc "github.com/jbrjake/sketches-go/ddsketch/encoding"
+	"github.com/jbrjake/sketches-go/ddsketch/pb/sketchpb"
 )
 
 // LogarithmicMapping is an IndexMapping that is memory-optimal, that is to say
