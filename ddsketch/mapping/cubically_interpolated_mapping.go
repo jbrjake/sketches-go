@@ -111,11 +111,11 @@ func (m *CubicallyInterpolatedMapping) approximateInverseLog(x float64) float64 
 	return buildFloat64(int(exponent), significandPlusOne)
 }
 
-func (m *CubicallyInterpolatedMapping) MinIndexableValue() float64 {
+func (m *CubicallyInterpolatedMapping) GetMinIndexableValue() float64 {
 	return m.minIndexableValue
 }
 
-func (m *CubicallyInterpolatedMapping) MaxIndexableValue() float64 {
+func (m *CubicallyInterpolatedMapping) GetMaxIndexableValue() float64 {
 	return m.maxIndexableValue
 }
 

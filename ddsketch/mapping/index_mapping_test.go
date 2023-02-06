@@ -67,11 +67,11 @@ func EvaluateRelativeAccuracy(t *testing.T, expected, actual, relativeAccuracy f
 }
 
 func EvaluateMappingAccuracy(t *testing.T, mapping IndexMapping, relativeAccuracy float64) {
-	for value := mapping.MinIndexableValue(); value < mapping.MaxIndexableValue(); value *= multiplier {
+	for value := mapping.GetMinIndexableValue(); value < mapping.GetMaxIndexableValue(); value *= multiplier {
 		mappedValue := mapping.Value(mapping.Index(value))
 		EvaluateRelativeAccuracy(t, value, mappedValue, relativeAccuracy)
 	}
-	value := mapping.MaxIndexableValue()
+	value := mapping.GetMaxIndexableValue()
 	mappedValue := mapping.Value(mapping.Index(value))
 	EvaluateRelativeAccuracy(t, value, mappedValue, relativeAccuracy)
 }

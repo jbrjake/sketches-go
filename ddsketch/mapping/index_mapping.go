@@ -25,9 +25,9 @@ type IndexMapping interface {
 	LowerBound(index int) float64
 	RelativeAccuracy() float64
 	// MinIndexableValue returns the minimum positive value that can be mapped to an index.
-	MinIndexableValue() float64
+	GetMinIndexableValue() float64
 	// MaxIndexableValue returns the maximum positive value that can be mapped to an index.
-	MaxIndexableValue() float64
+	GetMaxIndexableValue() float64
 	ToProto() *sketchpb.IndexMapping
 	// Encode encodes a mapping and appends its content to the provided []byte.
 	Encode(b *[]byte)

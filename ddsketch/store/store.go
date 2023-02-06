@@ -37,7 +37,7 @@ type Store interface {
 	AddWithCount(index int, count float64)
 	// Bins returns a channel that emits the bins that are encoded in the store.
 	// Note that this leaks a channel and a goroutine if it is not iterated to completion.
-	Bins() <-chan Bin
+	GetBins() <-chan Bin
 	// ForEach applies f to all elements of the store or until f returns true.
 	ForEach(f func(index int, count float64) (stop bool))
 	Copy() Store
@@ -48,8 +48,8 @@ type Store interface {
 	// the store overly large and may waste memory space.
 	Clear()
 	IsEmpty() bool
-	MaxIndex() (int, error)
-	MinIndex() (int, error)
+	GetMaxIndex() (int, error)
+	GetMinIndex() (int, error)
 	TotalCount() float64
 	KeyAtRank(rank float64) int
 	MergeWith(store Store)

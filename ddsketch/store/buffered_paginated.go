@@ -199,7 +199,7 @@ func (s *BufferedPaginatedStore) Add(index int) {
 }
 
 func (s *BufferedPaginatedStore) AddBin(bin Bin) {
-	s.AddWithCount(bin.Index(), bin.Count())
+	s.AddWithCount(bin.Index, bin.Count)
 }
 
 func (s *BufferedPaginatedStore) AddWithCount(index int, count float64) {
@@ -236,7 +236,7 @@ func (s *BufferedPaginatedStore) TotalCount() float64 {
 	return totalCount
 }
 
-func (s *BufferedPaginatedStore) MinIndex() (int, error) {
+func (s *BufferedPaginatedStore) GetMinIndex() (int, error) {
 	isEmpty := true
 
 	// Iterate over the buffer.
@@ -276,7 +276,7 @@ func (s *BufferedPaginatedStore) MinIndex() (int, error) {
 	}
 }
 
-func (s *BufferedPaginatedStore) MaxIndex() (int, error) {
+func (s *BufferedPaginatedStore) GetMaxIndex() (int, error) {
 	isEmpty := true
 
 	// Iterate over the buffer.
@@ -325,7 +325,7 @@ func (s *BufferedPaginatedStore) KeyAtRank(rank float64) int {
 	})
 
 	if err != nil {
-		maxIndex, err := s.MaxIndex()
+		maxIndex, err := s.GetMaxIndex()
 		if err == nil {
 			return maxIndex
 		} else {
@@ -408,7 +408,7 @@ func (s *BufferedPaginatedStore) MergeWithProto(pb *sketchpb.Store) {
 	}
 }
 
-func (s *BufferedPaginatedStore) Bins() <-chan Bin {
+func (s *BufferedPaginatedStore) GetBins() <-chan Bin {
 	s.sortBuffer()
 	ch := make(chan Bin)
 	go func() {
@@ -438,9 +438,9 @@ func (s *BufferedPaginatedStore) Bins() <-chan Bin {
 					if s.buffer[indexBufferStartPos] == index {
 						break
 					}
-					ch <- Bin{_Index: s.buffer[indexBufferStartPos], _Count: float64(bufferPos - indexBufferStartPos)}
+					ch <- Bin{Index: s.buffer[indexBufferStartPos], Count: float64(bufferPos - indexBufferStartPos)}
 				}
-				ch <- Bin{_Index: index, _Count: count + float64(bufferPos-indexBufferStartPos)}
+				ch <- Bin{Index: index, Count: count + float64(bufferPos-indexBufferStartPos)}
 			}
 		}
 
@@ -451,7 +451,7 @@ func (s *BufferedPaginatedStore) Bins() <-chan Bin {
 			for bufferPos < len(s.buffer) && s.buffer[bufferPos] == s.buffer[indexBufferStartPos] {
 				bufferPos++
 			}
-			bin := Bin{_Index: s.buffer[indexBufferStartPos], _Count: float64(bufferPos - indexBufferStartPos)}
+			bin := Bin{Index: s.buffer[indexBufferStartPos], Count: float64(bufferPos - indexBufferStartPos)}
 			ch <- bin
 		}
 	}()

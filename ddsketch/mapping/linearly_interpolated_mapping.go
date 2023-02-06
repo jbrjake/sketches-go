@@ -98,11 +98,11 @@ func (m *LinearlyInterpolatedMapping) approximateInverseLog(x float64) float64 {
 	return buildFloat64(int(exponent), significandPlusOne)
 }
 
-func (m *LinearlyInterpolatedMapping) MinIndexableValue() float64 {
+func (m *LinearlyInterpolatedMapping) GetMinIndexableValue() float64 {
 	return m.minIndexableValue
 }
 
-func (m *LinearlyInterpolatedMapping) MaxIndexableValue() float64 {
+func (m *LinearlyInterpolatedMapping) GetMaxIndexableValue() float64 {
 	return m.maxIndexableValue
 }
 

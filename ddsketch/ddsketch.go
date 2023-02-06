@@ -126,13 +126,13 @@ func (s *DDSketch) AddWithCount(value, count float64) error {
 		return ErrNegativeCount
 	}
 
-	if value > s.MinIndexableValue() {
-		if value > s.MaxIndexableValue() {
+	if value > s.GetMinIndexableValue() {
+		if value > s.GetMaxIndexableValue() {
 			return ErrUntrackableTooHigh
 		}
 		s.PositiveValueStore.AddWithCount(s.Index(value), count)
-	} else if value < -s.MinIndexableValue() {
-		if value < -s.MaxIndexableValue() {
+	} else if value < -s.GetMinIndexableValue() {
+		if value < -s.GetMaxIndexableValue() {
 			return ErrUntrackableTooLow
 		}
 		s.NegativeValueStore.AddWithCount(s.Index(-value), count)
@@ -219,12 +219,12 @@ func (s *DDSketch) IsEmpty() bool {
 // is empty.
 func (s *DDSketch) GetMaxValue() (float64, error) {
 	if !s.PositiveValueStore.IsEmpty() {
-		maxIndex, _ := s.PositiveValueStore.MaxIndex()
+		maxIndex, _ := s.PositiveValueStore.GetMaxIndex()
 		return s.Value(maxIndex), nil
 	} else if s.ZeroCount > 0 {
 		return 0, nil
 	} else {
-		minIndex, err := s.NegativeValueStore.MinIndex()
+		minIndex, err := s.NegativeValueStore.GetMinIndex()
 		if err != nil {
 			return math.NaN(), err
 		}
@@ -236,12 +236,12 @@ func (s *DDSketch) GetMaxValue() (float64, error) {
 // is empty.
 func (s *DDSketch) GetMinValue() (float64, error) {
 	if !s.NegativeValueStore.IsEmpty() {
-		maxIndex, _ := s.NegativeValueStore.MaxIndex()
+		maxIndex, _ := s.NegativeValueStore.GetMaxIndex()
 		return -s.Value(maxIndex), nil
 	} else if s.ZeroCount > 0 {
 		return 0, nil
 	} else {
-		minIndex, err := s.PositiveValueStore.MinIndex()
+		minIndex, err := s.PositiveValueStore.GetMinIndex()
 		if err != nil {
 			return math.NaN(), err
 		}

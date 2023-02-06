@@ -26,7 +26,7 @@ func (s *SparseStore) Add(index int) {
 }
 
 func (s *SparseStore) AddBin(bin Bin) {
-	s.AddWithCount(bin._Index, bin._Count)
+	s.AddWithCount(bin.Index, bin.Count)
 }
 
 func (s *SparseStore) AddWithCount(index int, count float64) {
@@ -36,7 +36,7 @@ func (s *SparseStore) AddWithCount(index int, count float64) {
 	s.counts[index] += count
 }
 
-func (s *SparseStore) Bins() <-chan Bin {
+func (s *SparseStore) GetBins() <-chan Bin {
 	orderedBins := s.orderedBins()
 	ch := make(chan Bin)
 	go func() {
@@ -51,9 +51,9 @@ func (s *SparseStore) Bins() <-chan Bin {
 func (s *SparseStore) orderedBins() []Bin {
 	bins := make([]Bin, 0, len(s.counts))
 	for index, count := range s.counts {
-		bins = append(bins, Bin{_Index: index, _Count: count})
+		bins = append(bins, Bin{Index: index, Count: count})
 	}
-	sort.Slice(bins, func(i, j int) bool { return bins[i]._Index < bins[j]._Index })
+	sort.Slice(bins, func(i, j int) bool { return bins[i].Index < bins[j].Index })
 	return bins
 }
 
@@ -83,7 +83,7 @@ func (s *SparseStore) IsEmpty() bool {
 	return len(s.counts) == 0
 }
 
-func (s *SparseStore) MaxIndex() (int, error) {
+func (s *SparseStore) GetMaxIndex() (int, error) {
 	if s.IsEmpty() {
 		return 0, errUndefinedMaxIndex
 	}
@@ -96,7 +96,7 @@ func (s *SparseStore) MaxIndex() (int, error) {
 	return maxIndex, nil
 }
 
-func (s *SparseStore) MinIndex() (int, error) {
+func (s *SparseStore) GetMinIndex() (int, error) {
 	if s.IsEmpty() {
 		return 0, errUndefinedMinIndex
 	}
@@ -121,12 +121,12 @@ func (s *SparseStore) KeyAtRank(rank float64) int {
 	orderedBins := s.orderedBins()
 	cumulCount := float64(0)
 	for _, bin := range orderedBins {
-		cumulCount += bin._Count
+		cumulCount += bin.Count
 		if cumulCount > rank {
-			return bin._Index
+			return bin.Index
 		}
 	}
-	maxIndex, err := s.MaxIndex()
+	maxIndex, err := s.GetMaxIndex()
 	if err == nil {
 		return maxIndex
 	} else {

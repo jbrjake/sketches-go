@@ -26,15 +26,15 @@ const (
 // DenseStore is a dynamically growing contiguous (non-sparse) store. The number of bins are
 // bound only by the size of the slice that can be allocated.
 type DenseStore struct {
-	_Bins     []float64
-	Count     float64
-	Offset    int
-	_MinIndex int
-	_MaxIndex int
+	Bins     []float64
+	Count    float64
+	Offset   int
+	MinIndex int
+	MaxIndex int
 }
 
 func NewDenseStore() *DenseStore {
-	return &DenseStore{_MinIndex: math.MaxInt32, _MaxIndex: math.MinInt32}
+	return &DenseStore{MinIndex: math.MaxInt32, MaxIndex: math.MinInt32}
 }
 
 func (s *DenseStore) Add(index int) {
@@ -42,10 +42,10 @@ func (s *DenseStore) Add(index int) {
 }
 
 func (s *DenseStore) AddBin(bin Bin) {
-	if bin._Count == 0 {
+	if bin.Count == 0 {
 		return
 	}
-	s.AddWithCount(bin._Index, bin._Count)
+	s.AddWithCount(bin.Index, bin.Count)
 }
 
 func (s *DenseStore) AddWithCount(index int, count float64) {
@@ -53,13 +53,13 @@ func (s *DenseStore) AddWithCount(index int, count float64) {
 		return
 	}
 	arrayIndex := s.normalize(index)
-	s._Bins[arrayIndex] += count
+	s.Bins[arrayIndex] += count
 	s.Count += count
 }
 
 // Normalize the store, if necessary, so that the counter of the specified index can be updated.
 func (s *DenseStore) normalize(index int) int {
-	if index < s._MinIndex || index > s._MaxIndex {
+	if index < s.MinIndex || index > s.MaxIndex {
 		s.extendRange(index, index)
 	}
 	return index - s.Offset
@@ -72,25 +72,25 @@ func (s *DenseStore) getNewLength(newMinIndex, newMaxIndex int) int {
 
 func (s *DenseStore) extendRange(newMinIndex, newMaxIndex int) {
 
-	newMinIndex = min(newMinIndex, s._MinIndex)
-	newMaxIndex = max(newMaxIndex, s._MaxIndex)
+	newMinIndex = min(newMinIndex, s.MinIndex)
+	newMaxIndex = max(newMaxIndex, s.MaxIndex)
 
 	if s.IsEmpty() {
 		initialLength := s.getNewLength(newMinIndex, newMaxIndex)
-		s._Bins = append(s._Bins, make([]float64, initialLength)...)
+		s.Bins = append(s.Bins, make([]float64, initialLength)...)
 		s.Offset = newMinIndex
-		s._MinIndex = newMinIndex
-		s._MaxIndex = newMaxIndex
+		s.MinIndex = newMinIndex
+		s.MaxIndex = newMaxIndex
 		s.adjust(newMinIndex, newMaxIndex)
-	} else if newMinIndex >= s.Offset && newMaxIndex < s.Offset+len(s._Bins) {
-		s._MinIndex = newMinIndex
-		s._MaxIndex = newMaxIndex
+	} else if newMinIndex >= s.Offset && newMaxIndex < s.Offset+len(s.Bins) {
+		s.MinIndex = newMinIndex
+		s.MaxIndex = newMaxIndex
 	} else {
 		// To avoid shifting too often when nearing the capacity of the array,
 		// we may grow it before we actually reach the capacity.
 		newLength := s.getNewLength(newMinIndex, newMaxIndex)
-		if newLength > len(s._Bins) {
-			s._Bins = append(s._Bins, make([]float64, newLength-len(s._Bins))...)
+		if newLength > len(s.Bins) {
+			s.Bins = append(s.Bins, make([]float64, newLength-len(s.Bins))...)
 		}
 		s.adjust(newMinIndex, newMaxIndex)
 	}
@@ -104,26 +104,26 @@ func (s *DenseStore) adjust(newMinIndex, newMaxIndex int) {
 
 func (s *DenseStore) centerCounts(newMinIndex, newMaxIndex int) {
 	midIndex := newMinIndex + (newMaxIndex-newMinIndex+1)/2
-	s.shiftCounts(s.Offset + len(s._Bins)/2 - midIndex)
-	s._MinIndex = newMinIndex
-	s._MaxIndex = newMaxIndex
+	s.shiftCounts(s.Offset + len(s.Bins)/2 - midIndex)
+	s.MinIndex = newMinIndex
+	s.MaxIndex = newMaxIndex
 }
 
 func (s *DenseStore) shiftCounts(shift int) {
-	minArrIndex := s._MinIndex - s.Offset
-	maxArrIndex := s._MaxIndex - s.Offset
-	copy(s._Bins[minArrIndex+shift:], s._Bins[minArrIndex:maxArrIndex+1])
+	minArrIndex := s.MinIndex - s.Offset
+	maxArrIndex := s.MaxIndex - s.Offset
+	copy(s.Bins[minArrIndex+shift:], s.Bins[minArrIndex:maxArrIndex+1])
 	if shift > 0 {
-		s.resetBins(s._MinIndex, s._MinIndex+shift-1)
+		s.resetBins(s.MinIndex, s.MinIndex+shift-1)
 	} else {
-		s.resetBins(s._MaxIndex+shift+1, s._MaxIndex)
+		s.resetBins(s.MaxIndex+shift+1, s.MaxIndex)
 	}
 	s.Offset -= shift
 }
 
 func (s *DenseStore) resetBins(fromIndex, toIndex int) {
 	for i := fromIndex - s.Offset; i <= toIndex-s.Offset; i++ {
-		s._Bins[i] = 0
+		s.Bins[i] = 0
 	}
 }
 
@@ -135,18 +135,18 @@ func (s *DenseStore) TotalCount() float64 {
 	return s.Count
 }
 
-func (s *DenseStore) MinIndex() (int, error) {
+func (s *DenseStore) GetMinIndex() (int, error) {
 	if s.IsEmpty() {
 		return 0, errUndefinedMinIndex
 	}
-	return s._MinIndex, nil
+	return s.MinIndex, nil
 }
 
-func (s *DenseStore) MaxIndex() (int, error) {
+func (s *DenseStore) GetMaxIndex() (int, error) {
 	if s.IsEmpty() {
 		return 0, errUndefinedMaxIndex
 	}
-	return s._MaxIndex, nil
+	return s.MaxIndex, nil
 }
 
 // Return the key for the value at rank
@@ -155,13 +155,13 @@ func (s *DenseStore) KeyAtRank(rank float64) int {
 		rank = 0
 	}
 	var n float64
-	for i, b := range s._Bins {
+	for i, b := range s.Bins {
 		n += b
 		if n > rank {
 			return i + s.Offset
 		}
 	}
-	return s._MaxIndex
+	return s.MaxIndex
 }
 
 func (s *DenseStore) MergeWith(other Store) {
@@ -176,22 +176,22 @@ func (s *DenseStore) MergeWith(other Store) {
 		})
 		return
 	}
-	if o._MinIndex < s._MinIndex || o._MaxIndex > s._MaxIndex {
-		s.extendRange(o._MinIndex, o._MaxIndex)
+	if o.MinIndex < s.MinIndex || o.MaxIndex > s.MaxIndex {
+		s.extendRange(o.MinIndex, o.MaxIndex)
 	}
-	for idx := o._MinIndex; idx <= o._MaxIndex; idx++ {
-		s._Bins[idx-s.Offset] += o._Bins[idx-o.Offset]
+	for idx := o.MinIndex; idx <= o.MaxIndex; idx++ {
+		s.Bins[idx-s.Offset] += o.Bins[idx-o.Offset]
 	}
 	s.Count += o.Count
 }
 
-func (s *DenseStore) Bins() <-chan Bin {
+func (s *DenseStore) GetBins() <-chan Bin {
 	ch := make(chan Bin)
 	go func() {
 		defer close(ch)
-		for idx := s._MinIndex; idx <= s._MaxIndex; idx++ {
-			if s._Bins[idx-s.Offset] > 0 {
-				ch <- Bin{_Index: idx, _Count: s._Bins[idx-s.Offset]}
+		for idx := s.MinIndex; idx <= s.MaxIndex; idx++ {
+			if s.Bins[idx-s.Offset] > 0 {
+				ch <- Bin{Index: idx, Count: s.Bins[idx-s.Offset]}
 			}
 		}
 	}()
@@ -199,9 +199,9 @@ func (s *DenseStore) Bins() <-chan Bin {
 }
 
 func (s *DenseStore) ForEach(f func(index int, count float64) (stop bool)) {
-	for idx := s._MinIndex; idx <= s._MaxIndex; idx++ {
-		if s._Bins[idx-s.Offset] > 0 {
-			if f(idx, s._Bins[idx-s.Offset]) {
+	for idx := s.MinIndex; idx <= s.MaxIndex; idx++ {
+		if s.Bins[idx-s.Offset] > 0 {
+			if f(idx, s.Bins[idx-s.Offset]) {
 				return
 			}
 		}
@@ -209,32 +209,32 @@ func (s *DenseStore) ForEach(f func(index int, count float64) (stop bool)) {
 }
 
 func (s *DenseStore) Copy() Store {
-	bins := make([]float64, len(s._Bins))
-	copy(bins, s._Bins)
+	bins := make([]float64, len(s.Bins))
+	copy(bins, s.Bins)
 	return &DenseStore{
-		_Bins:     bins,
-		Count:     s.Count,
-		Offset:    s.Offset,
-		_MinIndex: s._MinIndex,
-		_MaxIndex: s._MaxIndex,
+		Bins:     bins,
+		Count:    s.Count,
+		Offset:   s.Offset,
+		MinIndex: s.MinIndex,
+		MaxIndex: s.MaxIndex,
 	}
 }
 
 func (s *DenseStore) Clear() {
-	s._Bins = s._Bins[:0]
+	s.Bins = s.Bins[:0]
 	s.Count = 0
-	s._MinIndex = math.MaxInt32
-	s._MaxIndex = math.MinInt32
+	s.MinIndex = math.MaxInt32
+	s.MaxIndex = math.MinInt32
 }
 
 func (s *DenseStore) string() string {
 	var buffer bytes.Buffer
 	buffer.WriteString("{")
-	for i := 0; i < len(s._Bins); i++ {
+	for i := 0; i < len(s.Bins); i++ {
 		index := i + s.Offset
-		buffer.WriteString(fmt.Sprintf("%d: %f, ", index, s._Bins[i]))
+		buffer.WriteString(fmt.Sprintf("%d: %f, ", index, s.Bins[i]))
 	}
-	buffer.WriteString(fmt.Sprintf("count: %v, offset: %d, minIndex: %d, maxIndex: %d}", s.Count, s.Offset, s._MinIndex, s._MaxIndex))
+	buffer.WriteString(fmt.Sprintf("count: %v, offset: %d, minIndex: %d, maxIndex: %d}", s.Count, s.Offset, s.MinIndex, s.MaxIndex))
 	return buffer.String()
 }
 
@@ -242,11 +242,11 @@ func (s *DenseStore) ToProto() *sketchpb.Store {
 	if s.IsEmpty() {
 		return &sketchpb.Store{ContiguousBinCounts: nil}
 	}
-	bins := make([]float64, s._MaxIndex-s._MinIndex+1)
-	copy(bins, s._Bins[s._MinIndex-s.Offset:s._MaxIndex-s.Offset+1])
+	bins := make([]float64, s.MaxIndex-s.MinIndex+1)
+	copy(bins, s.Bins[s.MinIndex-s.Offset:s.MaxIndex-s.Offset+1])
 	return &sketchpb.Store{
 		ContiguousBinCounts:      bins,
-		ContiguousBinIndexOffset: int32(s._MinIndex),
+		ContiguousBinIndexOffset: int32(s.MinIndex),
 	}
 }
 
@@ -258,8 +258,8 @@ func (s *DenseStore) Reweight(w float64) error {
 		return nil
 	}
 	s.Count *= w
-	for idx := s._MinIndex; idx <= s._MaxIndex; idx++ {
-		s._Bins[idx-s.Offset] *= w
+	for idx := s.MinIndex; idx <= s.MaxIndex; idx++ {
+		s.Bins[idx-s.Offset] *= w
 	}
 	return nil
 }
@@ -270,17 +270,17 @@ func (s *DenseStore) Encode(b *[]byte, t enc.FlagType) {
 	}
 
 	denseEncodingSize := 0
-	numBins := uint64(s._MaxIndex-s._MinIndex) + 1
+	numBins := uint64(s.MaxIndex-s.MinIndex) + 1
 	denseEncodingSize += enc.Uvarint64Size(numBins)
-	denseEncodingSize += enc.Varint64Size(int64(s._MinIndex))
+	denseEncodingSize += enc.Varint64Size(int64(s.MinIndex))
 	denseEncodingSize += enc.Varint64Size(1)
 
 	sparseEncodingSize := 0
 	numNonEmptyBins := uint64(0)
 
-	previousIndex := s._MinIndex
-	for index := s._MinIndex; index <= s._MaxIndex; index++ {
-		count := s._Bins[index-s.Offset]
+	previousIndex := s.MinIndex
+	for index := s.MinIndex; index <= s.MaxIndex; index++ {
+		count := s.Bins[index-s.Offset]
 		countVarFloat64Size := enc.Varfloat64Size(count)
 		denseEncodingSize += countVarFloat64Size
 		if count != 0 {
@@ -302,10 +302,10 @@ func (s *DenseStore) Encode(b *[]byte, t enc.FlagType) {
 func (s *DenseStore) encodeDensely(b *[]byte, t enc.FlagType, numBins uint64) {
 	enc.EncodeFlag(b, enc.NewFlag(t, enc.BinEncodingContiguousCounts))
 	enc.EncodeUvarint64(b, numBins)
-	enc.EncodeVarint64(b, int64(s._MinIndex))
+	enc.EncodeVarint64(b, int64(s.MinIndex))
 	enc.EncodeVarint64(b, 1)
-	for index := s._MinIndex; index <= s._MaxIndex; index++ {
-		enc.EncodeVarfloat64(b, s._Bins[index-s.Offset])
+	for index := s.MinIndex; index <= s.MaxIndex; index++ {
+		enc.EncodeVarfloat64(b, s.Bins[index-s.Offset])
 	}
 }
 
@@ -313,8 +313,8 @@ func (s *DenseStore) encodeSparsely(b *[]byte, t enc.FlagType, numNonEmptyBins u
 	enc.EncodeFlag(b, enc.NewFlag(t, enc.BinEncodingIndexDeltasAndCounts))
 	enc.EncodeUvarint64(b, numNonEmptyBins)
 	previousIndex := 0
-	for index := s._MinIndex; index <= s._MaxIndex; index++ {
-		count := s._Bins[index-s.Offset]
+	for index := s.MinIndex; index <= s.MaxIndex; index++ {
+		count := s.Bins[index-s.Offset]
 		if count != 0 {
 			enc.EncodeVarint64(b, int64(index-previousIndex))
 			enc.EncodeVarfloat64(b, count)
