@@ -24,7 +24,7 @@ func NewCollapsingLowestDenseStore(maxNumBins int) *CollapsingLowestDenseStore {
 	// When the first value is added, a small number of bins are allocated. The number of bins will
 	// grow as needed up to maxNumBins.
 	return &CollapsingLowestDenseStore{
-		DenseStore:  DenseStore{minIndex: math.MaxInt32, maxIndex: math.MinInt32},
+		DenseStore:  DenseStore{_MinIndex: math.MaxInt32, _MaxIndex: math.MinInt32},
 		MaxNumBins:  maxNumBins,
 		IsCollapsed: false,
 	}
@@ -48,13 +48,13 @@ func (s *CollapsingLowestDenseStore) AddWithCount(index int, count float64) {
 		return
 	}
 	arrayIndex := s.normalize(index)
-	s.bins[arrayIndex] += count
-	s.count += count
+	s._Bins[arrayIndex] += count
+	s.Count += count
 }
 
 // Normalize the store, if necessary, so that the counter of the specified index can be updated.
 func (s *CollapsingLowestDenseStore) normalize(index int) int {
-	if index < s.minIndex {
+	if index < s._MinIndex {
 		if s.IsCollapsed {
 			return 0
 		} else {
@@ -63,10 +63,10 @@ func (s *CollapsingLowestDenseStore) normalize(index int) int {
 				return 0
 			}
 		}
-	} else if index > s.maxIndex {
+	} else if index > s._MaxIndex {
 		s.extendRange(index, index)
 	}
-	return index - s.offset
+	return index - s.Offset
 }
 
 func (s *CollapsingLowestDenseStore) getNewLength(newMinIndex, newMaxIndex int) int {
@@ -74,24 +74,24 @@ func (s *CollapsingLowestDenseStore) getNewLength(newMinIndex, newMaxIndex int) 
 }
 
 func (s *CollapsingLowestDenseStore) extendRange(newMinIndex, newMaxIndex int) {
-	newMinIndex = min(newMinIndex, s.minIndex)
-	newMaxIndex = max(newMaxIndex, s.maxIndex)
+	newMinIndex = min(newMinIndex, s._MinIndex)
+	newMaxIndex = max(newMaxIndex, s._MaxIndex)
 	if s.IsEmpty() {
 		initialLength := s.getNewLength(newMinIndex, newMaxIndex)
-		s.bins = append(s.bins, make([]float64, initialLength)...)
-		s.offset = newMinIndex
-		s.minIndex = newMinIndex
-		s.maxIndex = newMaxIndex
+		s._Bins = append(s._Bins, make([]float64, initialLength)...)
+		s.Offset = newMinIndex
+		s._MinIndex = newMinIndex
+		s._MaxIndex = newMaxIndex
 		s.adjust(newMinIndex, newMaxIndex)
-	} else if newMinIndex >= s.offset && newMaxIndex < s.offset+len(s.bins) {
-		s.minIndex = newMinIndex
-		s.maxIndex = newMaxIndex
+	} else if newMinIndex >= s.Offset && newMaxIndex < s.Offset+len(s._Bins) {
+		s._MinIndex = newMinIndex
+		s._MaxIndex = newMaxIndex
 	} else {
 		// To avoid shifting too often when nearing the capacity of the array,
 		// we may grow it before we actually reach the capacity.
 		newLength := s.getNewLength(newMinIndex, newMaxIndex)
-		if newLength > len(s.bins) {
-			s.bins = append(s.bins, make([]float64, newLength-len(s.bins))...)
+		if newLength > len(s._Bins) {
+			s._Bins = append(s._Bins, make([]float64, newLength-len(s._Bins))...)
 		}
 		s.adjust(newMinIndex, newMaxIndex)
 	}
@@ -100,35 +100,35 @@ func (s *CollapsingLowestDenseStore) extendRange(newMinIndex, newMaxIndex int) {
 // Adjust bins, offset, minIndex and maxIndex, without resizing the bins slice in order to make it fit the
 // specified range.
 func (s *CollapsingLowestDenseStore) adjust(newMinIndex, newMaxIndex int) {
-	if newMaxIndex-newMinIndex+1 > len(s.bins) {
+	if newMaxIndex-newMinIndex+1 > len(s._Bins) {
 		// The range of indices is too wide, buckets of lowest indices need to be collapsed.
-		newMinIndex = newMaxIndex - len(s.bins) + 1
-		if newMinIndex >= s.maxIndex {
+		newMinIndex = newMaxIndex - len(s._Bins) + 1
+		if newMinIndex >= s._MaxIndex {
 			// There will be only one non-empty bucket.
-			s.bins = make([]float64, len(s.bins))
-			s.offset = newMinIndex
-			s.minIndex = newMinIndex
-			s.bins[0] = s.count
+			s._Bins = make([]float64, len(s._Bins))
+			s.Offset = newMinIndex
+			s._MinIndex = newMinIndex
+			s._Bins[0] = s.Count
 		} else {
-			shift := s.offset - newMinIndex
+			shift := s.Offset - newMinIndex
 			if shift < 0 {
 				// Collapse the buckets.
 				n := float64(0)
-				for i := s.minIndex; i < newMinIndex; i++ {
-					n += s.bins[i-s.offset]
+				for i := s._MinIndex; i < newMinIndex; i++ {
+					n += s._Bins[i-s.Offset]
 				}
-				s.resetBins(s.minIndex, newMinIndex-1)
-				s.bins[newMinIndex-s.offset] += n
-				s.minIndex = newMinIndex
+				s.resetBins(s._MinIndex, newMinIndex-1)
+				s._Bins[newMinIndex-s.Offset] += n
+				s._MinIndex = newMinIndex
 				// Shift the buckets to make room for newMaxIndex.
 				s.shiftCounts(shift)
 			} else {
 				// Shift the buckets to make room for newMinIndex.
 				s.shiftCounts(shift)
-				s.minIndex = newMinIndex
+				s._MinIndex = newMinIndex
 			}
 		}
-		s.maxIndex = newMaxIndex
+		s._MaxIndex = newMaxIndex
 		s.IsCollapsed = true
 	} else {
 		s.centerCounts(newMinIndex, newMaxIndex)
@@ -147,34 +147,34 @@ func (s *CollapsingLowestDenseStore) MergeWith(other Store) {
 		})
 		return
 	}
-	if o.minIndex < s.minIndex || o.maxIndex > s.maxIndex {
-		s.extendRange(o.minIndex, o.maxIndex)
+	if o._MinIndex < s._MinIndex || o._MaxIndex > s._MaxIndex {
+		s.extendRange(o._MinIndex, o._MaxIndex)
 	}
-	idx := o.minIndex
-	for ; idx < s.minIndex && idx <= o.maxIndex; idx++ {
-		s.bins[0] += o.bins[idx-o.offset]
+	idx := o._MinIndex
+	for ; idx < s._MinIndex && idx <= o._MaxIndex; idx++ {
+		s._Bins[0] += o._Bins[idx-o.Offset]
 	}
-	for ; idx < o.maxIndex; idx++ {
-		s.bins[idx-s.offset] += o.bins[idx-o.offset]
+	for ; idx < o._MaxIndex; idx++ {
+		s._Bins[idx-s.Offset] += o._Bins[idx-o.Offset]
 	}
 	// This is a separate test so that the comparison in the previous loop is strict (<) and handles
-	// store.maxIndex = Integer.MAX_VALUE.
-	if idx == o.maxIndex {
-		s.bins[idx-s.offset] += o.bins[idx-o.offset]
+	// store._MaxIndex = Integer.MAX_VALUE.
+	if idx == o._MaxIndex {
+		s._Bins[idx-s.Offset] += o._Bins[idx-o.Offset]
 	}
-	s.count += o.count
+	s.Count += o.Count
 }
 
 func (s *CollapsingLowestDenseStore) Copy() Store {
-	bins := make([]float64, len(s.bins))
-	copy(bins, s.bins)
+	bins := make([]float64, len(s._Bins))
+	copy(bins, s._Bins)
 	return &CollapsingLowestDenseStore{
 		DenseStore: DenseStore{
-			bins:     bins,
-			count:    s.count,
-			offset:   s.offset,
-			minIndex: s.minIndex,
-			maxIndex: s.maxIndex,
+			_Bins:     bins,
+			Count:     s.Count,
+			Offset:    s.Offset,
+			_MinIndex: s._MinIndex,
+			_MaxIndex: s._MaxIndex,
 		},
 		MaxNumBins:  s.MaxNumBins,
 		IsCollapsed: s.IsCollapsed,

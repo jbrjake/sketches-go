@@ -8,21 +8,21 @@ package store
 import "errors"
 
 type Bin struct {
-	index int
-	count float64
+	_Index int
+	_Count float64
 }
 
 func NewBin(index int, count float64) (*Bin, error) {
 	if count < 0 {
 		return nil, errors.New("The count cannot be negative")
 	}
-	return &Bin{index: index, count: count}, nil
+	return &Bin{_Index: index, _Count: count}, nil
 }
 
 func (b Bin) Index() int {
-	return b.index
+	return b._Index
 }
 
 func (b Bin) Count() float64 {
-	return b.count
+	return b._Count
 }

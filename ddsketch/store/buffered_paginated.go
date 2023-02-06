@@ -438,9 +438,9 @@ func (s *BufferedPaginatedStore) Bins() <-chan Bin {
 					if s.buffer[indexBufferStartPos] == index {
 						break
 					}
-					ch <- Bin{index: s.buffer[indexBufferStartPos], count: float64(bufferPos - indexBufferStartPos)}
+					ch <- Bin{_Index: s.buffer[indexBufferStartPos], _Count: float64(bufferPos - indexBufferStartPos)}
 				}
-				ch <- Bin{index: index, count: count + float64(bufferPos-indexBufferStartPos)}
+				ch <- Bin{_Index: index, _Count: count + float64(bufferPos-indexBufferStartPos)}
 			}
 		}
 
@@ -451,7 +451,7 @@ func (s *BufferedPaginatedStore) Bins() <-chan Bin {
 			for bufferPos < len(s.buffer) && s.buffer[bufferPos] == s.buffer[indexBufferStartPos] {
 				bufferPos++
 			}
-			bin := Bin{index: s.buffer[indexBufferStartPos], count: float64(bufferPos - indexBufferStartPos)}
+			bin := Bin{_Index: s.buffer[indexBufferStartPos], _Count: float64(bufferPos - indexBufferStartPos)}
 			ch <- bin
 		}
 	}()

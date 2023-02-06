@@ -51,7 +51,7 @@ func collapsingLowest(maxNumBins int) func(bins []Bin) []Bin {
 	return func(bins []Bin) []Bin {
 		maxIndex := minInt
 		for _, bin := range bins {
-			maxIndex = max(maxIndex, bin.index)
+			maxIndex = max(maxIndex, bin._Index)
 		}
 		if maxIndex < minInt+maxNumBins {
 			return bins
@@ -59,7 +59,7 @@ func collapsingLowest(maxNumBins int) func(bins []Bin) []Bin {
 		minCollapsedIndex := maxIndex - maxNumBins + 1
 		collapsedBins := make([]Bin, 0, len(bins))
 		for _, bin := range bins {
-			collapsedBins = append(collapsedBins, Bin{index: max(bin.index, minCollapsedIndex), count: bin.count})
+			collapsedBins = append(collapsedBins, Bin{_Index: max(bin._Index, minCollapsedIndex), _Count: bin._Count})
 		}
 		return collapsedBins
 	}
@@ -69,7 +69,7 @@ func collapsingHighest(maxNumBins int) func(bins []Bin) []Bin {
 	return func(bins []Bin) []Bin {
 		minIndex := maxInt
 		for _, bin := range bins {
-			minIndex = min(minIndex, bin.index)
+			minIndex = min(minIndex, bin._Index)
 		}
 		if minIndex > maxInt-maxNumBins {
 			return bins
@@ -77,7 +77,7 @@ func collapsingHighest(maxNumBins int) func(bins []Bin) []Bin {
 		maxCollapsedIndex := minIndex + maxNumBins - 1
 		collapsedBins := make([]Bin, 0, len(bins))
 		for _, bin := range bins {
-			collapsedBins = append(collapsedBins, Bin{index: min(bin.index, maxCollapsedIndex), count: bin.count})
+			collapsedBins = append(collapsedBins, Bin{_Index: min(bin._Index, maxCollapsedIndex), _Count: bin._Count})
 		}
 		return collapsedBins
 	}
@@ -133,7 +133,7 @@ func TestAddIntDatasets(t *testing.T) {
 					bins := make([]Bin, 0, len(dataset))
 					storeAdd := testCase.newStore()
 					for _, index := range dataset {
-						bin := Bin{index: index, count: 1}
+						bin := Bin{_Index: index, _Count: 1}
 						bins = append(bins, bin)
 						storeAdd.Add(index)
 					}
@@ -145,7 +145,7 @@ func TestAddIntDatasets(t *testing.T) {
 					storeAddBin := testCase.newStore()
 					storeAddWithCount := testCase.newStore()
 					for _, index := range dataset {
-						bin := Bin{index: index, count: count}
+						bin := Bin{_Index: index, _Count: count}
 						bins = append(bins, bin)
 						storeAddBin.AddBin(bin)
 						storeAddWithCount.AddWithCount(index, count)
@@ -173,10 +173,10 @@ func TestAddConstant(t *testing.T) {
 					storeAddWithCount := testCase.newStore()
 					for j := 0; j < count; j++ {
 						storeAdd.Add(index)
-						storeAddBin.AddBin(Bin{index: index, count: 1})
+						storeAddBin.AddBin(Bin{_Index: index, _Count: 1})
 						storeAddWithCount.AddWithCount(index, 1)
 					}
-					bins := []Bin{{index: index, count: float64(count)}}
+					bins := []Bin{{_Index: index, _Count: float64(count)}}
 					normalizedBins := normalize(testCase.transformBins(bins))
 					testStore(t, storeAdd, normalizedBins)
 					testStore(t, storeAddBin, normalizedBins)
@@ -200,7 +200,7 @@ func TestAddMonotonous(t *testing.T) {
 					storeAddBin := testCase.newStore()
 					storeAddWithCount := testCase.newStore()
 					for index := 0; math.Abs(float64(index)) <= float64(spread); index += increment {
-						bin := Bin{index: index, count: 1}
+						bin := Bin{_Index: index, _Count: 1}
 						bins = append(bins, bin)
 						storeAdd.Add(index)
 						storeAddBin.AddBin(bin)
@@ -229,10 +229,10 @@ func TestAddFuzzy(t *testing.T) {
 				storeAddWithCount := testCase.newStore()
 				numValues := random.Intn(maxNumValues)
 				for j := 0; j < numValues; j++ {
-					bin := Bin{index: randomIndex(random), count: randomCount(random)}
+					bin := Bin{_Index: randomIndex(random), _Count: randomCount(random)}
 					bins = append(bins, bin)
 					storeAddBin.AddBin(bin)
-					storeAddWithCount.AddWithCount(bin.index, bin.count)
+					storeAddWithCount.AddWithCount(bin._Index, bin._Count)
 				}
 				normalizedBins := normalize(testCase.transformBins(bins))
 				testStore(t, storeAddBin, normalizedBins)
@@ -256,11 +256,11 @@ func TestAddIntFuzzy(t *testing.T) {
 				storeAddWithCount := testCase.newStore()
 				numValues := random.Intn(maxNumValues)
 				for j := 0; j < numValues; j++ {
-					bin := Bin{index: randomIndex(random), count: 1}
+					bin := Bin{_Index: randomIndex(random), _Count: 1}
 					bins = append(bins, bin)
-					storeAdd.Add(bin.index)
+					storeAdd.Add(bin._Index)
 					storeAddBin.AddBin(bin)
-					storeAddWithCount.AddWithCount(bin.index, bin.count)
+					storeAddWithCount.AddWithCount(bin._Index, bin._Count)
 				}
 				normalizedBins := normalize(testCase.transformBins(bins))
 				testStore(t, storeAdd, normalizedBins)
@@ -286,7 +286,7 @@ func TestMergeFuzzy(t *testing.T) {
 					numValues := random.Intn(maxNumAdds)
 					tmpStore := testCase.newStore()
 					for k := 0; k < numValues; k++ {
-						bin := Bin{index: randomIndex(random), count: randomCount(random)}
+						bin := Bin{_Index: randomIndex(random), _Count: randomCount(random)}
 						bins = append(bins, bin)
 						tmpStore.AddBin(bin)
 					}
@@ -353,7 +353,7 @@ func decodeBins(t *testing.T, s Store, b []byte) {
 func assertEncodeBins(t *testing.T, store Store, normalizedBins []Bin) {
 	expectedTotalCount := float64(0)
 	for _, bin := range normalizedBins {
-		expectedTotalCount += bin.count
+		expectedTotalCount += bin._Count
 	}
 
 	if expectedTotalCount == 0 {
@@ -374,41 +374,41 @@ func assertEncodeBins(t *testing.T, store Store, normalizedBins []Bin) {
 		maxIndex, maxErr := store.MaxIndex()
 		assert.Nil(t, minErr, "min index err")
 		assert.Nil(t, maxErr, "max index err")
-		assert.Equal(t, normalizedBins[0].index, minIndex, "min index")
-		assert.Equal(t, normalizedBins[len(normalizedBins)-1].index, maxIndex, "max index")
+		assert.Equal(t, normalizedBins[0]._Index, minIndex, "min index")
+		assert.Equal(t, normalizedBins[len(normalizedBins)-1]._Index, maxIndex, "max index")
 
 		forEachBins := make([]Bin, 0)
 		store.ForEach(func(index int, count float64) bool {
-			forEachBins = append(forEachBins, Bin{index: index, count: count})
+			forEachBins = append(forEachBins, Bin{_Index: index, _Count: count})
 			return false
 		})
-		sort.Slice(forEachBins, func(i, j int) bool { return forEachBins[i].index < forEachBins[j].index })
+		sort.Slice(forEachBins, func(i, j int) bool { return forEachBins[i]._Index < forEachBins[j]._Index })
 		for i, bin := range forEachBins {
-			assert.Equal(t, normalizedBins[i].index, bin.index, "bin index")
-			assert.InEpsilon(t, normalizedBins[i].count, bin.count, epsilon, "bin count")
+			assert.Equal(t, normalizedBins[i]._Index, bin._Index, "bin index")
+			assert.InEpsilon(t, normalizedBins[i]._Count, bin._Count, epsilon, "bin count")
 		}
 
 		i := 0
 		for bin := range store.Bins() {
-			assert.Equal(t, normalizedBins[i].index, bin.index, "bin index")
-			assert.InEpsilon(t, normalizedBins[i].count, bin.count, epsilon, "bin count")
+			assert.Equal(t, normalizedBins[i]._Index, bin._Index, "bin index")
+			assert.InEpsilon(t, normalizedBins[i]._Count, bin._Count, epsilon, "bin count")
 			i++
 		}
 		assert.Equal(t, len(normalizedBins), i)
 
 		cumulCount := float64(0)
 		for i = 0; i < len(normalizedBins)-1; i++ {
-			cumulCount += normalizedBins[i].count
+			cumulCount += normalizedBins[i]._Count
 			if (i*100)%len(normalizedBins) != 0 {
 				// Test at most 10 values to speed up tests.
 				continue
 			}
-			assert.Equal(t, normalizedBins[i].index, store.KeyAtRank(cumulCount*(1-epsilon)), "key at rank before cumul count step")
-			assert.Less(t, normalizedBins[i].index, store.KeyAtRank(cumulCount*(1+epsilon)), "key at rank after cumul count step")
+			assert.Equal(t, normalizedBins[i]._Index, store.KeyAtRank(cumulCount*(1-epsilon)), "key at rank before cumul count step")
+			assert.Less(t, normalizedBins[i]._Index, store.KeyAtRank(cumulCount*(1+epsilon)), "key at rank after cumul count step")
 		}
-		cumulCount += normalizedBins[len(normalizedBins)-1].count
-		assert.Equal(t, normalizedBins[len(normalizedBins)-1].index, store.KeyAtRank(cumulCount*(1-epsilon)), "key at rank before total count")
-		assert.Equal(t, normalizedBins[len(normalizedBins)-1].index, store.KeyAtRank(cumulCount*(1+epsilon)), "key at rank after total count")
+		cumulCount += normalizedBins[len(normalizedBins)-1]._Count
+		assert.Equal(t, normalizedBins[len(normalizedBins)-1]._Index, store.KeyAtRank(cumulCount*(1-epsilon)), "key at rank before total count")
+		assert.Equal(t, normalizedBins[len(normalizedBins)-1]._Index, store.KeyAtRank(cumulCount*(1+epsilon)), "key at rank after total count")
 	}
 }
 
@@ -416,25 +416,25 @@ func assertEncodeBins(t *testing.T, store Store, normalizedBins []Bin) {
 func normalize(bins []Bin) []Bin {
 	binsByIndex := make(map[int]float64)
 	for _, bin := range bins {
-		if bin.count <= 0 {
+		if bin._Count <= 0 {
 			continue
 		}
-		binsByIndex[bin.index] += bin.count
+		binsByIndex[bin._Index] += bin._Count
 	}
 	normalizedBins := make([]Bin, 0, len(bins))
 	for index, count := range binsByIndex {
-		normalizedBins = append(normalizedBins, Bin{index: index, count: count})
+		normalizedBins = append(normalizedBins, Bin{_Index: index, _Count: count})
 	}
-	sort.Slice(normalizedBins, func(i, j int) bool { return normalizedBins[i].index < normalizedBins[j].index })
+	sort.Slice(normalizedBins, func(i, j int) bool { return normalizedBins[i]._Index < normalizedBins[j]._Index })
 	return normalizedBins
 }
 
 func EvaluateValues(t *testing.T, store *DenseStore, values []int, collapsingLowest bool, collapsingHighest bool) {
 	var count float64
-	for _, b := range store.bins {
+	for _, b := range store._Bins {
 		count += b
 	}
-	assert.Equal(t, count, store.count)
+	assert.Equal(t, count, store.Count)
 	assert.Equal(t, count, float64(len(values)))
 	sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
 	if !collapsingLowest {
@@ -517,28 +517,28 @@ func TestDenseMerge(t *testing.T) {
 
 func EvaluateCollapsingLowestStore(t *testing.T, store *CollapsingLowestDenseStore, values []int32) {
 	var count float64
-	for _, b := range store.bins {
+	for _, b := range store._Bins {
 		count += b
 	}
-	assert.Equal(t, count, store.count)
+	assert.Equal(t, count, store.Count)
 	assert.Equal(t, count, float64(len(values)))
 	sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
 	maxIndex, _ := store.MaxIndex()
 	assert.Equal(t, maxIndex, int(values[len(values)-1]))
-	assert.GreaterOrEqual(t, store.MaxNumBins, len(store.bins))
+	assert.GreaterOrEqual(t, store.MaxNumBins, len(store._Bins))
 }
 
 func EvaluateCollapsingHighestStore(t *testing.T, store *CollapsingHighestDenseStore, values []int32) {
 	var count float64
-	for _, b := range store.bins {
+	for _, b := range store._Bins {
 		count += b
 	}
-	assert.Equal(t, count, store.count)
+	assert.Equal(t, count, store.Count)
 	assert.Equal(t, count, float64(len(values)))
 	sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
 	minIndex, _ := store.MinIndex()
 	assert.Equal(t, minIndex, int(values[0]))
-	assert.GreaterOrEqual(t, store.MaxNumBins, len(store.bins))
+	assert.GreaterOrEqual(t, store.MaxNumBins, len(store._Bins))
 }
 
 func TestCollapsingLowestAdd(t *testing.T) {
@@ -584,7 +584,7 @@ func TestCollapsingLowest(t *testing.T) {
 		for i := 0; i < 2*maxNumBins; i++ {
 			store.Add(i)
 		}
-		assert.Equal(t, len(store.bins), maxNumBins)
+		assert.Equal(t, len(store._Bins), maxNumBins)
 		minIndex, _ := store.MinIndex()
 		assert.Equal(t, minIndex, maxNumBins)
 		maxIndex, _ := store.MaxIndex()
@@ -599,7 +599,7 @@ func TestCollapsingHighest(t *testing.T) {
 		for i := 0; i < 2*maxNumBins; i++ {
 			store.Add(i)
 		}
-		assert.Equal(t, len(store.bins), maxNumBins)
+		assert.Equal(t, len(store._Bins), maxNumBins)
 		minIndex, _ := store.MinIndex()
 		assert.Equal(t, minIndex, 0)
 		maxIndex, _ := store.MaxIndex()
@@ -798,13 +798,13 @@ func TestDenseMixedMerge2(t *testing.T) {
 }
 
 func AssertDenseStoresEqual(t *testing.T, store DenseStore, other DenseStore) {
-	assert.Equal(t, store.count, other.count)
-	assert.Equal(t, store.minIndex, other.minIndex)
-	assert.Equal(t, store.maxIndex, other.maxIndex)
+	assert.Equal(t, store.Count, other.Count)
+	assert.Equal(t, store._MinIndex, other._MinIndex)
+	assert.Equal(t, store._MaxIndex, other._MaxIndex)
 	assert.Equal(
 		t,
-		store.bins[store.minIndex-store.offset:store.maxIndex+1-store.offset],
-		other.bins[other.minIndex-other.offset:other.maxIndex+1-other.offset],
+		store._Bins[store._MinIndex-store.Offset:store._MaxIndex+1-store.Offset],
+		other._Bins[other._MinIndex-other.Offset:other._MaxIndex+1-other.Offset],
 	)
 }
 
@@ -856,10 +856,10 @@ func TestSparseStoreSerialization(t *testing.T) {
 func assertStoreBinsLogicallyEquivalent(t *testing.T, store1 Store, store2 Store) {
 	store1Bins := make([]Bin, 0)
 	store1.ForEach(func(index int, count float64) bool {
-		store1Bins = append(store1Bins, Bin{index: index, count: count})
+		store1Bins = append(store1Bins, Bin{_Index: index, _Count: count})
 		return false
 	})
-	sort.Slice(store1Bins, func(i, j int) bool { return store1Bins[i].index < store1Bins[j].index })
+	sort.Slice(store1Bins, func(i, j int) bool { return store1Bins[i]._Index < store1Bins[j]._Index })
 	assertEncodeBins(t, store2, store1Bins)
 }
 
@@ -950,7 +950,7 @@ func TestBufferedPaginatedMergeWithProtoFuzzy(t *testing.T) {
 			numValues := random.Intn(maxNumAdds)
 			tmpStore := NewBufferedPaginatedStore()
 			for k := 0; k < numValues; k++ {
-				bin := Bin{index: randomIndex(random), count: randomCount(random)}
+				bin := Bin{_Index: randomIndex(random), _Count: randomCount(random)}
 				bins = append(bins, bin)
 				tmpStore.AddBin(bin)
 			}
@@ -972,10 +972,10 @@ func TestDecode(t *testing.T) {
 			enc.EncodeFlag(b, enc.NewFlag(storeFlagType, enc.BinEncodingIndexDeltas))
 			enc.EncodeUvarint64(b, uint64(numBufferEncodedIndexes))
 			enc.EncodeVarint64(b, 0)
-			bins = append(bins, Bin{index: 0, count: 1})
+			bins = append(bins, Bin{_Index: 0, _Count: 1})
 			for index := 1; index < numBufferEncodedIndexes; index++ {
 				enc.EncodeVarint64(b, 1)
-				bins = append(bins, Bin{index: index, count: 1})
+				bins = append(bins, Bin{_Index: index, _Count: 1})
 			}
 
 			minPageEncodedIndex := 39
@@ -989,7 +989,7 @@ func TestDecode(t *testing.T) {
 				for i := 0; i < len; i++ {
 					count := 1.5
 					enc.EncodeVarfloat64(b, count)
-					bins = append(bins, Bin{index: index, count: count})
+					bins = append(bins, Bin{_Index: index, _Count: count})
 					index += indexDelta
 				}
 
@@ -1118,15 +1118,15 @@ func liveSize() uint64 {
 func size(t *testing.T, store Store) uintptr {
 	if s, ok := store.(*DenseStore); ok {
 		size := reflect.TypeOf(s).Elem().Size()
-		size += uintptr(cap(s.bins)) * reflect.TypeOf(s.bins).Elem().Size()
+		size += uintptr(cap(s._Bins)) * reflect.TypeOf(s._Bins).Elem().Size()
 		return size
 	} else if s, ok := store.(*CollapsingLowestDenseStore); ok {
 		size := reflect.TypeOf(s).Elem().Size()
-		size += uintptr(cap(s.bins)) * reflect.TypeOf(s.bins).Elem().Size()
+		size += uintptr(cap(s._Bins)) * reflect.TypeOf(s._Bins).Elem().Size()
 		return size
 	} else if s, ok := store.(*CollapsingHighestDenseStore); ok {
 		size := reflect.TypeOf(s).Elem().Size()
-		size += uintptr(cap(s.bins)) * reflect.TypeOf(s.bins).Elem().Size()
+		size += uintptr(cap(s._Bins)) * reflect.TypeOf(s._Bins).Elem().Size()
 		return size
 	} else if _, ok := store.(*SparseStore); ok {
 		// FIXME: implement for map
