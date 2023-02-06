@@ -20,9 +20,9 @@ type CollapsingLowestDenseStore struct {
 	IsCollapsed bool
 }
 
-type CollapsingLowestDenseStoreProvider func() CollapsingLowestDenseStore
+type CollapsingLowestDenseStoreProvider func() *CollapsingLowestDenseStore
 
-var CollapsingLowestDenseStoreConstructor = CollapsingLowestDenseStoreProvider(func() CollapsingLowestDenseStore { return *NewCollapsingLowestDenseStore(2048) })
+var CollapsingLowestDenseStoreConstructor = CollapsingLowestDenseStoreProvider(func() *CollapsingLowestDenseStore { return NewCollapsingLowestDenseStore(2048) })
 
 func NewCollapsingLowestDenseStore(maxNumBins int) *CollapsingLowestDenseStore {
 	// Bins are not allocated until values are added.
@@ -253,7 +253,7 @@ func min(x, y int) int {
 // MergeWithProto merges the distribution in a protobuf Store to an existing store.
 // - if called with an empty store, this simply populates the store with the distribution in the protobuf Store.
 // - if called with a non-empty store, this has the same outcome as deserializing the protobuf Store, then merging.
-func MergeCollapsingLowestDenseStoreWithProto(store CollapsingLowestDenseStore, pb *sketchpb.Store) {
+func MergeCollapsingLowestDenseStoreWithProto(store *CollapsingLowestDenseStore, pb *sketchpb.Store) {
 	for idx, count := range pb.BinCounts {
 		store.AddWithCount(int(idx), count)
 	}

@@ -252,8 +252,8 @@ func FromProtoWithStoreProvider(pb *sketchpb.DDSketch, storeProvider store.Colla
 	store.MergeCollapsingLowestDenseStoreWithProto(negativeValueStore, pb.NegativeValues)
 	return &LogCollapsingLowestDenseDDSketch{
 		IndexMapping:       mapping.LogarithmicMapping{}, // FIXME
-		PositiveValueStore: positiveValueStore,
-		NegativeValueStore: negativeValueStore,
+		PositiveValueStore: *positiveValueStore,
+		NegativeValueStore: *negativeValueStore,
 		ZeroCount:          pb.ZeroCount,
 	}, nil
 }
