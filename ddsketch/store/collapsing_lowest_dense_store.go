@@ -9,6 +9,7 @@ import (
 	"math"
 
 	enc "github.com/jbrjake/sketches-go/ddsketch/encoding"
+	"github.com/jbrjake/sketches-go/ddsketch/pb/sketchpb"
 )
 
 // CollapsingLowestDenseStore is a dynamically growing contiguous (non-sparse) store.
@@ -18,6 +19,10 @@ type CollapsingLowestDenseStore struct {
 	MaxNumBins  int
 	IsCollapsed bool
 }
+
+type CollapsingLowestDenseStoreProvider func() CollapsingLowestDenseStore
+
+var CollapsingLowestDenseStoreConstructor = CollapsingLowestDenseStoreProvider(func() CollapsingLowestDenseStore { return *NewCollapsingLowestDenseStore(2048) })
 
 func NewCollapsingLowestDenseStore(maxNumBins int) *CollapsingLowestDenseStore {
 	// Bins are not allocated until values are added.
@@ -165,7 +170,46 @@ func (s *CollapsingLowestDenseStore) MergeWith(other Store) {
 	s.Count += o.Count
 }
 
+func (s *CollapsingLowestDenseStore) MergeWithCollapsingLowestDenseStore(other CollapsingLowestDenseStore) {
+	if other.IsEmpty() {
+		return
+	}
+	o := other
+	if o.MinIndex < s.MinIndex || o.MaxIndex > s.MaxIndex {
+		s.extendRange(o.MinIndex, o.MaxIndex)
+	}
+	idx := o.MinIndex
+	for ; idx < s.MinIndex && idx <= o.MaxIndex; idx++ {
+		s.Bins[0] += o.Bins[idx-o.Offset]
+	}
+	for ; idx < o.MaxIndex; idx++ {
+		s.Bins[idx-s.Offset] += o.Bins[idx-o.Offset]
+	}
+	// This is a separate test so that the comparison in the previous loop is strict (<) and handles
+	// store.MaxIndex = Integer.MAX_VALUE.
+	if idx == o.MaxIndex {
+		s.Bins[idx-s.Offset] += o.Bins[idx-o.Offset]
+	}
+	s.Count += o.Count
+}
+
 func (s *CollapsingLowestDenseStore) Copy() Store {
+	bins := make([]float64, len(s.Bins))
+	copy(bins, s.Bins)
+	return &CollapsingLowestDenseStore{
+		DenseStore: DenseStore{
+			Bins:     bins,
+			Count:    s.Count,
+			Offset:   s.Offset,
+			MinIndex: s.MinIndex,
+			MaxIndex: s.MaxIndex,
+		},
+		MaxNumBins:  s.MaxNumBins,
+		IsCollapsed: s.IsCollapsed,
+	}
+}
+
+func (s *CollapsingLowestDenseStore) CopyCollapsingLowestDenseStore() *CollapsingLowestDenseStore {
 	bins := make([]float64, len(s.Bins))
 	copy(bins, s.Bins)
 	return &CollapsingLowestDenseStore{
@@ -204,4 +248,16 @@ func min(x, y int) int {
 		return x
 	}
 	return y
+}
+
+// MergeWithProto merges the distribution in a protobuf Store to an existing store.
+// - if called with an empty store, this simply populates the store with the distribution in the protobuf Store.
+// - if called with a non-empty store, this has the same outcome as deserializing the protobuf Store, then merging.
+func MergeCollapsingLowestDenseStoreWithProto(store CollapsingLowestDenseStore, pb *sketchpb.Store) {
+	for idx, count := range pb.BinCounts {
+		store.AddWithCount(int(idx), count)
+	}
+	for idx, count := range pb.ContiguousBinCounts {
+		store.AddWithCount(idx+int(pb.ContiguousBinIndexOffset), count)
+	}
 }
