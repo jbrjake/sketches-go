@@ -29,7 +29,15 @@ type LogCollapsingLowestDenseDDSketch struct {
 	ZeroCount          float64
 }
 
-func NewLogCollapsingLowestDenseDDSketch(indexMapping mapping.LogarithmicMapping, positiveValueStore store.CollapsingLowestDenseStore, negativeValueStore store.CollapsingLowestDenseStore) *LogCollapsingLowestDenseDDSketch {
+func NewLogCollapsingLowestDenseDDSketch(relativeAccuracy float64, maxNumBins int) (*LogCollapsingLowestDenseDDSketch, error) {
+	indexMapping, err := mapping.NewLogarithmicMapping(relativeAccuracy)
+	if err != nil {
+		return nil, err
+	}
+	return NewSpecifiedLogCollapsingLowestDenseDDSketch(*indexMapping, *store.NewCollapsingLowestDenseStore(maxNumBins), *store.NewCollapsingLowestDenseStore(maxNumBins)), nil
+}
+
+func NewSpecifiedLogCollapsingLowestDenseDDSketch(indexMapping mapping.LogarithmicMapping, positiveValueStore store.CollapsingLowestDenseStore, negativeValueStore store.CollapsingLowestDenseStore) *LogCollapsingLowestDenseDDSketch {
 	return &LogCollapsingLowestDenseDDSketch{
 		IndexMapping:       indexMapping,
 		PositiveValueStore: positiveValueStore,
