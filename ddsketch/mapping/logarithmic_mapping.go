@@ -20,11 +20,11 @@ import (
 // indices to cover a given range of values. This is done by logarithmically
 // mapping floating-point values to integers.
 type LogarithmicMapping struct {
-	gamma             float64 // base
-	indexOffset       float64
-	multiplier        float64 // precomputed for performance
-	minIndexableValue float64
-	maxIndexableValue float64
+	Gamma              float64 // base
+	IndexOffset        float64
+	Multiplier         float64 // precomputed for performance
+	_MinIndexableValue float64
+	_MaxIndexableValue float64
 }
 
 func NewLogarithmicMapping(relativeAccuracy float64) (*LogarithmicMapping, error) {
@@ -42,14 +42,14 @@ func NewLogarithmicMappingWithGamma(gamma, indexOffset float64) (*LogarithmicMap
 	}
 	multiplier := 1 / math.Log(gamma)
 	m := &LogarithmicMapping{
-		gamma:       gamma,
-		indexOffset: indexOffset,
-		multiplier:  multiplier,
-		minIndexableValue: math.Max(
+		Gamma:       gamma,
+		IndexOffset: indexOffset,
+		Multiplier:  multiplier,
+		_MinIndexableValue: math.Max(
 			math.Exp((math.MinInt32-indexOffset)/multiplier+1), // so that index >= MinInt32
 			minNormalFloat64*gamma,
 		),
-		maxIndexableValue: math.Min(
+		_MaxIndexableValue: math.Min(
 			math.Exp((math.MaxInt32-indexOffset)/multiplier-1), // so that index <= MaxInt32
 			math.Exp(expOverflow)/(2*gamma)*(gamma+1),          // so that math.Exp does not overflow
 		),
@@ -63,11 +63,11 @@ func (m *LogarithmicMapping) Equals(other IndexMapping) bool {
 		return false
 	}
 	tol := 1e-12
-	return withinTolerance(m.gamma, o.gamma, tol) && withinTolerance(m.indexOffset, o.indexOffset, tol)
+	return withinTolerance(m.Gamma, o.Gamma, tol) && withinTolerance(m.IndexOffset, o.IndexOffset, tol)
 }
 
 func (m *LogarithmicMapping) Index(value float64) int {
-	index := math.Log(value)*m.multiplier + m.indexOffset
+	index := math.Log(value)*m.Multiplier + m.IndexOffset
 	if index >= 0 {
 		return int(index)
 	} else {
@@ -80,39 +80,39 @@ func (m *LogarithmicMapping) Value(index int) float64 {
 }
 
 func (m *LogarithmicMapping) LowerBound(index int) float64 {
-	return math.Exp((float64(index) - m.indexOffset) / m.multiplier)
+	return math.Exp((float64(index) - m.IndexOffset) / m.Multiplier)
 }
 
 func (m *LogarithmicMapping) MinIndexableValue() float64 {
-	return m.minIndexableValue
+	return m._MinIndexableValue
 }
 
 func (m *LogarithmicMapping) MaxIndexableValue() float64 {
-	return m.maxIndexableValue
+	return m._MaxIndexableValue
 }
 
 func (m *LogarithmicMapping) RelativeAccuracy() float64 {
-	return 1 - 2/(1+m.gamma)
+	return 1 - 2/(1+m.Gamma)
 }
 
 // Generates a protobuf representation of this LogarithicMapping.
 func (m *LogarithmicMapping) ToProto() *sketchpb.IndexMapping {
 	return &sketchpb.IndexMapping{
-		Gamma:         m.gamma,
-		IndexOffset:   m.indexOffset,
+		Gamma:         m.Gamma,
+		IndexOffset:   m.IndexOffset,
 		Interpolation: sketchpb.IndexMapping_NONE,
 	}
 }
 
 func (m *LogarithmicMapping) Encode(b *[]byte) {
 	enc.EncodeFlag(b, enc.FlagIndexMappingBaseLogarithmic)
-	enc.EncodeFloat64LE(b, m.gamma)
-	enc.EncodeFloat64LE(b, m.indexOffset)
+	enc.EncodeFloat64LE(b, m.Gamma)
+	enc.EncodeFloat64LE(b, m.IndexOffset)
 }
 
 func (m *LogarithmicMapping) string() string {
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("gamma: %v, indexOffset: %v\n", m.gamma, m.indexOffset))
+	buffer.WriteString(fmt.Sprintf("gamma: %v, indexOffset: %v\n", m.Gamma, m.IndexOffset))
 	return buffer.String()
 }
 
